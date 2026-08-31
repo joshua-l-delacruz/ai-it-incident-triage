@@ -1,0 +1,13 @@
+{
+  "name": "ai-it-incident-triage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sanitized n8n portfolio workflow for explainable IT incident triage.",
+  "scripts": {
+    "test": "node --test tests/triage-engine.test.mjs",
+    "validate:json": "node scripts/validate-json.mjs",
+    "check": "npm run validate:json && npm test"
+  },
+  "license": "MIT"
+}

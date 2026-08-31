@@ -1,0 +1,52 @@
+{
+  "name": "IT Incident Triage — Deterministic Baseline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "it-incident-triage-demo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1d1fc424-2606-40b1-944d-0e4afed08eb7",
+      "name": "Sanitized incident intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-520, 0],
+      "webhookId": "replace-after-import"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body ?? $json;\nconst description = String(input.description ?? '').trim();\nif (description.length < 10) throw new Error('description must contain at least 10 characters');\nconst text = `${input.short_description ?? ''} ${description}`;\nconst rules = [\n  ['Security','Security Operations',/ransomware|malware|phishing|compromis|suspicious login|data leak/i],\n  ['Identity & Access','Microsoft 365 \/ Identity',/password|sign[ -]?in|login|mfa|authenticat|account lock|access denied|credential/i],\n  ['Network','Network Connectivity',/vpn|wifi|wi-fi|network|dns|internet|latency|packet loss/i],\n  ['Endpoint','Managed Endpoint',/laptop|desktop|blue screen|bsod|device|intune|disk|cpu/i],\n  ['Application','Business Application',/application|app |website|portal|error 5\\d\\d|crash/i],\n  ['Email & Collaboration','Microsoft 365',/outlook|email|mailbox|teams|sharepoint|onedrive/i]\n];\nconst match = rules.find(([, , pattern]) => pattern.test(text));\nconst category = match?.[0] ?? 'General IT';\nconst service = match?.[1] ?? 'Service Desk';\nconst users = Math.max(1, Number(input.affected_users) || 1);\nconst critical = Boolean(input.business_critical);\nconst security = /ransomware|data leak|compromis|active attack/i.test(text);\nconst outage = /all users|company[- ]wide|site[- ]wide|complete outage|service down/i.test(text);\nlet priority = 'P3';\nif (security || (critical && outage)) priority = 'P1';\nelse if (outage || users >= 25 || critical) priority = 'P2';\nelse if (/request|how do i|information/i.test(text)) priority = 'P4';\nconst confidence = match ? 0.82 : 0.55;\nconst actions = {\n  'Security':['Preserve available evidence','Isolate affected assets when authorized','Escalate to the security response team'],\n  'Identity & Access':[\"Verify the user's identity through the approved process\",'Check account, license and authentication state','Review recent password or MFA changes and active sessions'],\n  'Network':['Confirm scope and affected locations','Collect connection, DNS and VPN status','Compare with monitoring and known outages'],\n  'Endpoint':['Record device and operating-system details','Check management and health status','Collect relevant error messages and logs'],\n  'Application':['Confirm application, environment and exact error','Check service health and recent changes','Reproduce safely and capture timestamps'],\n  'Email & Collaboration':['Check Microsoft 365 service health','Confirm account, license and client state','Compare web and desktop client behavior'],\n  'General IT':['Confirm impact, scope and start time','Collect exact errors and recent changes','Check known issues before assignment']\n};\nconst team = category === 'Security' ? 'Security Operations' : category === 'Identity & Access' ? 'IAM Support' : category === 'Network' ? 'Network Operations' : 'Service Desk / Application Owner';\nreturn [{ json: { schema_version:'1.0', incident_id:String(input.incident_id ?? `DEMO-${Date.now()}`), short_description:String(input.short_description ?? description.slice(0,90)), category, service, priority, confidence, reasoning:`Rule-based baseline matched ${category}; priority reflects stated scope, criticality and security indicators.`, initial_actions:actions[category], escalation_team:team, human_review_required:priority === 'P1' || priority === 'P2' || confidence < 0.7, ai_status:'not_used', data_notice:'Sanitized demonstration data only; human validation required.' } }];"
+      },
+      "id": "41405d35-878f-4b60-92b3-0919785e5bfd",
+      "name": "Validate and triage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-260, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "03c7a6a0-328c-47f3-9120-94e785ed83c5",
+      "name": "Return triage recommendation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [20, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Sanitized incident intake": { "main": [[{ "node": "Validate and triage", "type": "main", "index": 0 }]] },
+    "Validate and triage": { "main": [[{ "node": "Return triage recommendation", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1040914c-a331-4264-8a3c-1b77ff705720",
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": []
+}
+

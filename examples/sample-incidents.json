@@ -1,0 +1,31 @@
+[
+  {
+    "incident_id": "INC-DEMO-001",
+    "short_description": "Microsoft 365 sign-in loop",
+    "description": "User cannot access Microsoft 365 after a password reset. Outlook repeatedly asks for credentials.",
+    "affected_users": 1,
+    "business_critical": false
+  },
+  {
+    "incident_id": "INC-DEMO-002",
+    "short_description": "Manila VPN outage",
+    "description": "VPN is unavailable for all users at the Manila site. The issue started at 09:10 PHT.",
+    "affected_users": 48,
+    "business_critical": true
+  },
+  {
+    "incident_id": "INC-DEMO-003",
+    "short_description": "Suspected endpoint compromise",
+    "description": "A managed laptop generated an active ransomware alert and the user reports unexpected file changes.",
+    "affected_users": 1,
+    "business_critical": true
+  },
+  {
+    "incident_id": "INC-DEMO-004",
+    "short_description": "How-to request",
+    "description": "User asks how to add a shared mailbox in Outlook after approved access was granted.",
+    "affected_users": 1,
+    "business_critical": false
+  }
+]
+

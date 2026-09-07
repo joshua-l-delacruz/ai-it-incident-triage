@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible, non-security defect using sanitized examples.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, personal information, employer data, customer data or private incident details. Report security issues privately.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the expected and actual behavior with fictional or sanitized input.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reproducible sequence and identify the workflow or source file.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification context
+      description: Include the n8n version or `npm run check` result when relevant. Sanitize all logs.

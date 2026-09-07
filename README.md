@@ -1,6 +1,12 @@
 # AI-Assisted IT Incident Triage
 
+[![CI](https://github.com/joshua-l-delacruz/ai-it-incident-triage/actions/workflows/ci.yml/badge.svg)](https://github.com/joshua-l-delacruz/ai-it-incident-triage/actions/workflows/ci.yml)
+
 An n8n portfolio project that turns a sanitized incident submission into a structured, explainable triage recommendation. It combines a deterministic safety baseline with optional AI enrichment while keeping priority and escalation decisions reviewable by a person.
+
+**[Try the deterministic browser demo](https://joshuadelacruz.solutions/incident-triage/demo/)** · **[Read the case study](https://joshuadelacruz.solutions/incident-triage/)**
+
+![AI-assisted incident triage workflow](https://joshuadelacruz.solutions/assets/images/ai-incident-triage-workflow.svg)
 
 > **Project status:** the repository, workflows, tests and documentation are complete. No live n8n instance, OpenAI credential, ticketing platform, spreadsheet, email, Teams or Slack integration is included or claimed.
 
@@ -84,6 +90,10 @@ This validates the JSON artifacts and tests the reference baseline. It does not 
 ## Optional integrations not configured
 
 Google Sheets, ServiceNow/Jira, email and Teams/Slack are documented extension points. They are deliberately absent from the runnable workflows because no credentials, tenant URLs, tables, channels or field mappings were provided.
+
+## Contributing
+
+Focused fixes, test cases and documentation improvements are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Use fictional or sanitized incident data only; report exploitable issues privately according to [SECURITY.md](SECURITY.md).
 
 ## License
 

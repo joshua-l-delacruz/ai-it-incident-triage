@@ -26,3 +26,39 @@ test("rejects unusably short incident text", () => {
   assert.throws(() => triageIncident({ description: "broken" }), /at least 10/);
 });
 
+
+test("rejects string booleans rather than silently escalating them", () => {
+  assert.throws(() => triageIncident({
+    description: "User cannot sign in to Outlook", business_critical: "false"
+  }), /business_critical must be a boolean/);
+  assert.equal(triageIncident({
+    description: "User cannot sign in to Outlook", business_critical: false
+  }).priority, "P3");
+});
+
+test("requires review for security keywords even in negated or mixed context", () => {
+  const result = triageIncident({ description: "No malware detected; user requests password help" });
+  assert.equal(result.category, "Security");
+  assert.equal(result.human_review_required, true);
+});
+
+test("rejects malformed incident fields", () => {
+  for (const input of [null, [], "incident", {description: 12345},
+    {description: "x".repeat(4001)},
+    {description: "Cannot access Outlook", affected_users: "25"},
+    {description: "Cannot access Outlook", affected_users: -1},
+    {description: "Cannot access Outlook", affected_users: 1.5},
+    {description: "Cannot access Outlook", affected_users: Infinity},
+    {description: "Cannot access Outlook", affected_users: 1000001},
+    {description: "Cannot access Outlook", short_description: 42},
+    {description: "Cannot access Outlook", business_critical: null}]) {
+    assert.throws(() => triageIncident(input));
+  }
+});
+
+test("accepts documented input limits and keeps critical outages at P1", () => {
+  assert.equal(triageIncident({description: "x".repeat(4000), affected_users: 1000000}).priority, "P2");
+  assert.equal(triageIncident({
+    description: "VPN service down for all users", affected_users: 48, business_critical: true
+  }).priority, "P1");
+});

@@ -12,10 +12,7 @@
       "name": "Sanitized incident intake",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        -760,
-        0
-      ],
+      "position": [-760, 0],
       "webhookId": "replace-after-import"
     },
     {
@@ -26,10 +23,7 @@
       "name": "Validate and set priority floor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -520,
-        0
-      ]
+      "position": [-520, 0]
     },
     {
       "parameters": {
@@ -46,10 +40,7 @@
       "name": "AI enrichment — setup required",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        -260,
-        0
-      ],
+      "position": [-260, 0],
       "credentials": {
         "openAiApi": {
           "id": "REPLACE_IN_N8N",
@@ -66,83 +57,32 @@
       "name": "Validate AI output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        0,
-        0
-      ]
+      "position": [0, 0]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": 200
-        }
+        "options": { "responseCode": 200 }
       },
       "id": "7fe31044-2433-458c-9ec7-3f5afc681655",
       "name": "Return review recommendation",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [
-        260,
-        0
-      ]
+      "position": [260, 0]
     }
   ],
   "pinData": {},
   "connections": {
-    "Sanitized incident intake": {
-      "main": [
-        [
-          {
-            "node": "Validate and set priority floor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate and set priority floor": {
-      "main": [
-        [
-          {
-            "node": "AI enrichment — setup required",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI enrichment — setup required": {
-      "main": [
-        [
-          {
-            "node": "Validate AI output",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate AI output": {
-      "main": [
-        [
-          {
-            "node": "Return review recommendation",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Sanitized incident intake": { "main": [[{ "node": "Validate and set priority floor", "type": "main", "index": 0 }]] },
+    "Validate and set priority floor": { "main": [[{ "node": "AI enrichment — setup required", "type": "main", "index": 0 }]] },
+    "AI enrichment — setup required": { "main": [[{ "node": "Validate AI output", "type": "main", "index": 0 }]] },
+    "Validate AI output": { "main": [[{ "node": "Return review recommendation", "type": "main", "index": 0 }]] }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "versionId": "8fe180be-a2c5-49b3-8929-ec8bf7bd8350",
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
+  "meta": { "templateCredsSetupCompleted": false },
   "tags": []
 }
+

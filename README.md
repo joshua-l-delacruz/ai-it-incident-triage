@@ -2,19 +2,23 @@
 
 [![CI](https://github.com/joshua-l-delacruz/ai-it-incident-triage/actions/workflows/ci.yml/badge.svg)](https://github.com/joshua-l-delacruz/ai-it-incident-triage/actions/workflows/ci.yml)
 
-Turn a fictional IT incident into an explainable category, P1–P4 priority, suggested routing and initial checks. Import the n8n baseline without an external AI credential, or inspect the reference engine locally. An optional AI-assisted workflow preserves the baseline priority and human-review requirements.\n\nUse this proof of concept to learn and adapt triage rules. It does not grant access, perform remediation or replace an incident owner.
+Turn a fictional IT incident into an explainable category, P1–P4 priority, suggested routing and initial checks. Import the n8n baseline without an external AI credential, or inspect the reference engine locally. An optional AI-assisted workflow preserves the baseline priority and human-review requirements.
+
+Use this proof of concept to learn and adapt triage rules. It does not grant access, perform remediation or replace an incident owner.
 
 **[Explore the separate Cloudflare automation demo](https://joshuadelacruz.solutions/incident-triage/automation/)** · **[Read the case study](https://joshuadelacruz.solutions/incident-triage/)**
 
 ![AI-assisted incident triage workflow](https://joshuadelacruz.solutions/assets/images/ai-incident-triage-workflow.svg)
 
-> **Demo boundary:** The linked website is a separate Cloudflare implementation. Its page describes Workers AI processing and D1 storage of incident metadata; it is not a browser-local execution of this n8n workflow. Use fictional data only and review that implementation before submitting anything. This repository does not establish its retention or authorization guarantees.\n\n> **Project status:** the repository, workflows, tests and documentation are complete. No live n8n instance, OpenAI credential, ticketing platform, spreadsheet, email, Teams or Slack integration is included or claimed.
+> **Demo boundary:** The linked website is a separate Cloudflare implementation. Its page describes Workers AI processing and D1 storage of incident metadata; it is not a browser-local execution of this n8n workflow. Use fictional data only and review that implementation before submitting anything. This repository does not establish its retention or authorization guarantees.
+
+> **Project status:** the repository, workflows, tests and documentation are complete. No live n8n instance, OpenAI credential, ticketing platform, spreadsheet, email, Teams or Slack integration is included or claimed.
 
 ## Operational outcome
 
 - **Designed** two importable workflow modes: a credential-free deterministic baseline and an optional AI-assisted path.
 - **Implemented** explainable category, service, P1-P4 priority, escalation-team, initial-action, and human-review outputs.
-- **Validated** four sanitized incident scenarios and reference-engine and exported-workflow Code-node regression tests covering identity, security, outage, and invalid-input behavior.
+- **Validated** four sanitized incident scenarios with reference-engine and exported-workflow Code-node regression tests covering identity, security, outage, and invalid-input behavior.
 - **Preserved** a deterministic priority floor so optional AI cannot silently lower a baseline P1/P2 decision.
 
 These are controlled PoC counts. They do not claim production ticket volume, time saved, response-time improvement, or incident reduction.

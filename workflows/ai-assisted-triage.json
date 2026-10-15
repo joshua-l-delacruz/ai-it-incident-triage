@@ -12,18 +12,24 @@
       "name": "Sanitized incident intake",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-760, 0],
+      "position": [
+        -760,
+        0
+      ],
       "webhookId": "replace-after-import"
     },
     {
       "parameters": {
-        "jsCode": "const input = $json.body ?? $json;\nconst description = String(input.description ?? '').trim();\nif (description.length < 10) throw new Error('description must contain at least 10 characters');\nconst text = `${input.short_description ?? ''} ${description}`;\nconst security = /ransomware|data leak|compromis|active attack/i.test(text);\nconst outage = /all users|company[- ]wide|site[- ]wide|complete outage|service down/i.test(text);\nconst critical = Boolean(input.business_critical);\nconst users = Math.max(1, Number(input.affected_users) || 1);\nlet baseline_priority = 'P3';\nif (security || (critical && outage)) baseline_priority = 'P1';\nelse if (outage || users >= 25 || critical) baseline_priority = 'P2';\nelse if (/request|how do i|information/i.test(text)) baseline_priority = 'P4';\nreturn [{ json: { incident: input, baseline_priority, security_signal: security } }];"
+        "jsCode": "const RULES = [\n  { category: \"Security\", service: \"Security Operations\", pattern: /ransomware|malware|phishing|compromis|suspicious login|data leak/i },\n  { category: \"Identity & Access\", service: \"Microsoft 365 / Identity\", pattern: /password|sign[ -]?in|login|mfa|authenticat|account lock|access denied|credential/i },\n  { category: \"Network\", service: \"Network Connectivity\", pattern: /vpn|wifi|wi-fi|network|dns|internet|latency|packet loss/i },\n  { category: \"Endpoint\", service: \"Managed Endpoint\", pattern: /laptop|desktop|blue screen|bsod|device|intune|disk|cpu/i },\n  { category: \"Application\", service: \"Business Application\", pattern: /application|app |website|portal|error 5\\d\\d|crash/i },\n  { category: \"Email & Collaboration\", service: \"Microsoft 365\", pattern: /outlook|email|mailbox|teams|sharepoint|onedrive/i }\n];\n\nconst ACTIONS = {\n  \"Security\": [\"Preserve available evidence\", \"Isolate affected assets when authorized\", \"Escalate to the security response team\"],\n  \"Identity & Access\": [\"Verify the user's identity through the approved process\", \"Check account, license and authentication state\", \"Review recent password or MFA changes and active sessions\"],\n  \"Network\": [\"Confirm scope and affected locations\", \"Collect connection, DNS and VPN status\", \"Compare with monitoring and known outages\"],\n  \"Endpoint\": [\"Record device and operating-system details\", \"Check management and health status\", \"Collect relevant error messages and logs\"],\n  \"Application\": [\"Confirm application, environment and exact error\", \"Check service health and recent changes\", \"Reproduce safely and capture timestamps\"],\n  \"Email & Collaboration\": [\"Check Microsoft 365 service health\", \"Confirm account, license and client state\", \"Compare web and desktop client behavior\"],\n  \"General IT\": [\"Confirm impact, scope and start time\", \"Collect exact errors and recent changes\", \"Check known issues before assignment\"]\n};\n\nfunction triageIncident(input = {}) {\n  if (input === null || typeof input !== \"object\" || Array.isArray(input)) {\n    throw new TypeError(\"incident must be an object\");\n  }\n  if (typeof input.description !== \"string\") throw new TypeError(\"description must be a string\");\n  const description = input.description.trim();\n  if (description.length < 10) throw new Error(\"description must contain at least 10 characters\");\n  if (description.length > 4000) throw new Error(\"description must contain at most 4000 characters\");\n  if (input.short_description !== undefined &&\n      (typeof input.short_description !== \"string\" || input.short_description.length > 200)) {\n    throw new TypeError(\"short_description must be a string of at most 200 characters\");\n  }\n  if (input.business_critical !== undefined && typeof input.business_critical !== \"boolean\") {\n    throw new TypeError(\"business_critical must be a boolean\");\n  }\n  if (input.affected_users !== undefined &&\n      (!Number.isSafeInteger(input.affected_users) || input.affected_users < 1 || input.affected_users > 1000000)) {\n    throw new TypeError(\"affected_users must be an integer between 1 and 1000000\");\n  }\n\n  const combined = `${input.short_description ?? \"\"} ${description}`.trim();\n  const matched = RULES.find((rule) => rule.pattern.test(combined));\n  const category = matched?.category ?? \"General IT\";\n  const service = matched?.service ?? \"Service Desk\";\n  const affectedUsers = input.affected_users ?? 1;\n  const businessCritical = input.business_critical ?? false;\n  const securitySignal = /ransomware|data leak|compromis|active attack/i.test(combined);\n  const totalOutage = /all users|company[- ]wide|site[- ]wide|complete outage|service down/i.test(combined);\n\n  let priority = \"P3\";\n  if (securitySignal || (businessCritical && totalOutage)) priority = \"P1\";\n  else if (totalOutage || affectedUsers >= 25 || businessCritical) priority = \"P2\";\n  else if (/request|how do i|information/i.test(combined)) priority = \"P4\";\n\n  const confidence = matched ? 0.82 : 0.55;\n  const escalationTeam = category === \"Security\" ? \"Security Operations\" : category === \"Identity & Access\" ? \"IAM Support\" : category === \"Network\" ? \"Network Operations\" : \"Service Desk / Application Owner\";\n\n  return {\n    schema_version: \"1.0\",\n    incident_id: String(input.incident_id ?? `DEMO-${Date.now()}`),\n    short_description: String(input.short_description ?? description.slice(0, 90)),\n    category,\n    service,\n    priority,\n    confidence,\n    reasoning: `Rule-based baseline matched ${category}; priority reflects stated scope, criticality and security indicators.`,\n    initial_actions: ACTIONS[category],\n    escalation_team: escalationTeam,\n    human_review_required: category === \"Security\" || priority === \"P1\" || priority === \"P2\" || confidence < 0.7,\n    ai_status: \"not_used\",\n    data_notice: \"Sanitized demonstration data only; human validation required.\"\n  };\n}\n\n\nconst input = $json.body ?? $json;\nconst result = triageIncident(input);\nreturn [{ json: {\n  incident: input,\n  baseline_priority: result.priority,\n  security_signal: result.category === 'Security',\n  baseline_human_review_required: result.human_review_required\n} }];\n"
       },
       "id": "d6d9af00-ded9-46bc-946f-de1c4e30a1b1",
       "name": "Validate and set priority floor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-520, 0]
+      "position": [
+        -520,
+        0
+      ]
     },
     {
       "parameters": {
@@ -40,7 +46,10 @@
       "name": "AI enrichment — setup required",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-260, 0],
+      "position": [
+        -260,
+        0
+      ],
       "credentials": {
         "openAiApi": {
           "id": "REPLACE_IN_N8N",
@@ -51,38 +60,89 @@
     },
     {
       "parameters": {
-        "jsCode": "const baseline = $('Validate and set priority floor').first().json;\nconst raw = $json.choices?.[0]?.message?.content;\nif (!raw) throw new Error('AI response did not contain message content');\nlet ai;\ntry { ai = JSON.parse(raw); } catch { throw new Error('AI response was not valid JSON'); }\nconst priorities = ['P1','P2','P3','P4'];\nconst rank = { P1:1, P2:2, P3:3, P4:4 };\nconst requested = priorities.includes(ai.priority) ? ai.priority : baseline.baseline_priority;\nconst priority = rank[requested] <= rank[baseline.baseline_priority] ? requested : baseline.baseline_priority;\nconst allowedCategories = ['Security','Identity & Access','Network','Endpoint','Application','Email & Collaboration','General IT'];\nconst category = allowedCategories.includes(ai.category) ? ai.category : 'General IT';\nconst confidence = Math.min(1, Math.max(0, Number(ai.confidence) || 0.5));\nreturn [{ json: { schema_version:'1.0', incident_id:String(baseline.incident.incident_id ?? `DEMO-${Date.now()}`), short_description:String(baseline.incident.short_description ?? baseline.incident.description.slice(0,90)), category, service:String(ai.service ?? 'Service Desk'), priority, confidence, reasoning:String(ai.reasoning ?? 'AI reasoning unavailable').slice(0,500), initial_actions:Array.isArray(ai.initial_actions) ? ai.initial_actions.slice(0,5).map(String) : [], escalation_team:String(ai.escalation_team ?? 'Service Desk'), human_review_required:priority === 'P1' || priority === 'P2' || confidence < 0.7 || baseline.security_signal, ai_status:'enriched', baseline_priority:baseline.baseline_priority, data_notice:'Sanitized demonstration data only; human validation required.' } }];"
+        "jsCode": "const baseline = $('Validate and set priority floor').first().json;\nconst raw = $json.choices?.[0]?.message?.content;\nif (!raw) throw new Error('AI response did not contain message content');\nlet ai;\ntry { ai = JSON.parse(raw); } catch { throw new Error('AI response was not valid JSON'); }\nconst priorities = ['P1','P2','P3','P4'];\nconst rank = { P1:1, P2:2, P3:3, P4:4 };\nconst requested = priorities.includes(ai.priority) ? ai.priority : baseline.baseline_priority;\nconst priority = rank[requested] <= rank[baseline.baseline_priority] ? requested : baseline.baseline_priority;\nconst allowedCategories = ['Security','Identity & Access','Network','Endpoint','Application','Email & Collaboration','General IT'];\nconst category = allowedCategories.includes(ai.category) ? ai.category : 'General IT';\nconst confidence = Math.min(1, Math.max(0, Number(ai.confidence) || 0.5));\nreturn [{ json: { schema_version:'1.0', incident_id:String(baseline.incident.incident_id ?? `DEMO-${Date.now()}`), short_description:String(baseline.incident.short_description ?? baseline.incident.description.slice(0,90)), category, service:String(ai.service ?? 'Service Desk'), priority, confidence, reasoning:String(ai.reasoning ?? 'AI reasoning unavailable').slice(0,500), initial_actions:Array.isArray(ai.initial_actions) ? ai.initial_actions.slice(0,5).map(String) : [], escalation_team:String(ai.escalation_team ?? 'Service Desk'), human_review_required:priority === 'P1' || priority === 'P2' || confidence < 0.7 || baseline.security_signal || baseline.baseline_human_review_required || category === 'Security', ai_status:'enriched', baseline_priority:baseline.baseline_priority, data_notice:'Sanitized demonstration data only; human validation required.' } }];"
       },
       "id": "175046f3-dc4b-4c23-8f97-495d84609fbe",
       "name": "Validate AI output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "7fe31044-2433-458c-9ec7-3f5afc681655",
       "name": "Return review recommendation",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [260, 0]
+      "position": [
+        260,
+        0
+      ]
     }
   ],
   "pinData": {},
   "connections": {
-    "Sanitized incident intake": { "main": [[{ "node": "Validate and set priority floor", "type": "main", "index": 0 }]] },
-    "Validate and set priority floor": { "main": [[{ "node": "AI enrichment — setup required", "type": "main", "index": 0 }]] },
-    "AI enrichment — setup required": { "main": [[{ "node": "Validate AI output", "type": "main", "index": 0 }]] },
-    "Validate AI output": { "main": [[{ "node": "Return review recommendation", "type": "main", "index": 0 }]] }
+    "Sanitized incident intake": {
+      "main": [
+        [
+          {
+            "node": "Validate and set priority floor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and set priority floor": {
+      "main": [
+        [
+          {
+            "node": "AI enrichment — setup required",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI enrichment — setup required": {
+      "main": [
+        [
+          {
+            "node": "Validate AI output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate AI output": {
+      "main": [
+        [
+          {
+            "node": "Return review recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "versionId": "8fe180be-a2c5-49b3-8929-ec8bf7bd8350",
-  "meta": { "templateCredsSetupCompleted": false },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
   "tags": []
 }
-

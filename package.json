@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Sanitized n8n portfolio workflow for explainable IT incident triage.",
   "scripts": {
-    "test": "node --test tests/triage-engine.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "validate:json": "node scripts/validate-json.mjs",
     "check": "npm run validate:json && npm test"
   },

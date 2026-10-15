@@ -18,15 +18,31 @@ const ACTIONS = {
 };
 
 export function triageIncident(input = {}) {
-  const description = String(input.description ?? "").trim();
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("incident must be an object");
+  }
+  if (typeof input.description !== "string") throw new TypeError("description must be a string");
+  const description = input.description.trim();
   if (description.length < 10) throw new Error("description must contain at least 10 characters");
+  if (description.length > 4000) throw new Error("description must contain at most 4000 characters");
+  if (input.short_description !== undefined &&
+      (typeof input.short_description !== "string" || input.short_description.length > 200)) {
+    throw new TypeError("short_description must be a string of at most 200 characters");
+  }
+  if (input.business_critical !== undefined && typeof input.business_critical !== "boolean") {
+    throw new TypeError("business_critical must be a boolean");
+  }
+  if (input.affected_users !== undefined &&
+      (!Number.isSafeInteger(input.affected_users) || input.affected_users < 1 || input.affected_users > 1000000)) {
+    throw new TypeError("affected_users must be an integer between 1 and 1000000");
+  }
 
   const combined = `${input.short_description ?? ""} ${description}`.trim();
   const matched = RULES.find((rule) => rule.pattern.test(combined));
   const category = matched?.category ?? "General IT";
   const service = matched?.service ?? "Service Desk";
-  const affectedUsers = Number.isFinite(Number(input.affected_users)) ? Math.max(1, Number(input.affected_users)) : 1;
-  const businessCritical = Boolean(input.business_critical);
+  const affectedUsers = input.affected_users ?? 1;
+  const businessCritical = input.business_critical ?? false;
   const securitySignal = /ransomware|data leak|compromis|active attack/i.test(combined);
   const totalOutage = /all users|company[- ]wide|site[- ]wide|complete outage|service down/i.test(combined);
 
@@ -49,7 +65,7 @@ export function triageIncident(input = {}) {
     reasoning: `Rule-based baseline matched ${category}; priority reflects stated scope, criticality and security indicators.`,
     initial_actions: ACTIONS[category],
     escalation_team: escalationTeam,
-    human_review_required: priority === "P1" || priority === "P2" || confidence < 0.7,
+    human_review_required: category === "Security" || priority === "P1" || priority === "P2" || confidence < 0.7,
     ai_status: "not_used",
     data_notice: "Sanitized demonstration data only; human validation required."
   };

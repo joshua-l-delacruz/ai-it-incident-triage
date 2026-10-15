@@ -1,0 +1,58 @@
+name: n8n integration
+on:
+  pull_request:
+    paths:
+      - 'workflows/**'
+      - 'src/**'
+      - 'examples/**'
+      - 'scripts/n8n-integration.mjs'
+      - '.github/workflows/n8n-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline-webhook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      N8N_IMAGE: docker.n8n.io/n8nio/n8n:2.43.6
+      N8N_TEST_ROOT: /tmp/triage-n8n-integration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare isolated workflows and pull pinned n8n
+        run: |
+          node scripts/n8n-integration.mjs prepare "$N8N_TEST_ROOT"
+          sudo chown -R 1000:1000 "$N8N_TEST_ROOT/data"
+          docker pull "$N8N_IMAGE"
+      - name: Import both workflow artifacts
+        run: |
+          docker run --rm \
+            -e N8N_DIAGNOSTICS_ENABLED=false \
+            -e N8N_VERSION_NOTIFICATIONS_ENABLED=false \
+            -v "$N8N_TEST_ROOT/data:/home/node/.n8n" \
+            -v "$N8N_TEST_ROOT/inputs:/inputs:ro" \
+            "$N8N_IMAGE" import:workflow --input=/inputs/workflows.json
+      - name: Publish baseline in isolated test instance
+        run: |
+          docker run --rm \
+            -e N8N_DIAGNOSTICS_ENABLED=false \
+            -v "$N8N_TEST_ROOT/data:/home/node/.n8n" \
+            "$N8N_IMAGE" publish:workflow --id=TriageBaselineAudit
+          docker run -d --name triage-n8n \
+            -p 127.0.0.1:5689:5678 \
+            -e N8N_DIAGNOSTICS_ENABLED=false \
+            -e N8N_VERSION_NOTIFICATIONS_ENABLED=false \
+            -e N8N_TEMPLATES_ENABLED=false \
+            -v "$N8N_TEST_ROOT/data:/home/node/.n8n" \
+            "$N8N_IMAGE" start
+      - name: Verify actual webhook responses and validation
+        run: node scripts/n8n-integration.mjs test "$N8N_TEST_ROOT"
+      - name: Show diagnostics on failure
+        if: failure()
+        run: docker logs triage-n8n || true
+      - name: Stop isolated instance
+        if: always()
+        run: docker rm -f triage-n8n || true

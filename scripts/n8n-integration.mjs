@@ -24,7 +24,7 @@ if (mode === "prepare") {
   let ready = false;
   for (let i = 0; i < 60; i++) {
     try {
-      const response = await fetch(base + "/healthz", {signal: AbortSignal.timeout(2000)});
+      const response = await fetch(base + "/healthz/readiness", {signal: AbortSignal.timeout(2000)});
       if (response.ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -33,11 +33,19 @@ if (mode === "prepare") {
   const samples = JSON.parse(await readFile(new URL("../examples/sample-incidents.json", import.meta.url), "utf8"));
   samples.push({incident_id: "MIXED", description: "No malware detected; user requests password help"});
   for (const input of samples) {
-    const response = await fetch(base + "/webhook/it-incident-triage-demo", {
-      method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(input), signal: AbortSignal.timeout(30000)
-    });
-    const text = await response.text();
+    let response;
+    let text;
+    // Health may be ready before published webhooks finish registering.
+    // Retry only 404 responses; any execution error fails immediately.
+    for (let attempt = 0; attempt < 30; attempt++) {
+      response = await fetch(base + "/webhook/it-incident-triage-demo", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(input), signal: AbortSignal.timeout(30000)
+      });
+      text = await response.text();
+      if (response.status !== 404) break;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
     assert.equal(response.status, 200, text);
     assert.deepEqual(JSON.parse(text), triageIncident(input));
     console.log("PASS webhook: " + input.incident_id);

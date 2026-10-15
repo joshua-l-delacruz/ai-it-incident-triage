@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     env:
       N8N_IMAGE: docker.n8n.io/n8nio/n8n:2.43.6
-      N8N_TEST_ROOT: ${{ runner.temp }}/triage-n8n-integration
+      N8N_TEST_ROOT: /tmp/triage-n8n-integration
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
